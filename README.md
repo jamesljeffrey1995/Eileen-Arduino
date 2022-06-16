@@ -10,6 +10,6 @@
 
 ## Diagram
 <div align="center">
-    <img src="https://imgur.com/a/VtpzHQT.png"
+    <img src="https://i.imgur.com/UqruD4D.png"
 </div>
 
