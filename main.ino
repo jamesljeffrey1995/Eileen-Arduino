@@ -1,113 +1,33 @@
-#include <Wire.h>
-#include "DS1307.h"
-#include <SPI.h>
-#include <SD.h>
+#include "DFRobot_PH.h"
+#include <EEPROM.h>
 
-File myFile;
-DS1307 clock;//define a object of DS1307 class
-float floatMap(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
+#define PH_PIN A1
+float voltage,phValue,temperature = 25;
+DFRobot_PH ph;
+
 void setup()
 {
-    Serial.begin(9600);
-    clock.begin();
-    clock.fillByYMD(2022,06,20);//Jan 19,2013
-    clock.fillByHMS(21,49,00);//15:28 30"
-    clock.fillDayOfWeek(MON);//Saturday
-    clock.setTime();//write time to the RTC chip
+    Serial.begin(115200);  
+    ph.begin();
 }
+
 void loop()
 {
-
-    sd();
-    delay(10000);
-}
-    /*Function: Display time on the serial monitor*/
-
-void sd (){
-  Serial.print("Initializing SD card...");
-
-  if (!SD.begin(4)) {
-    Serial.println("initialization failed!");
-    while (1);
-  }
-  Serial.println("initialization done.");
-
-  // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  myFile = SD.open("test.txt", FILE_WRITE);
-
-  // if the file opened okay, write to it:
-  if (myFile) {
-    clock.getTime();
-    myFile.print(clock.hour, DEC);
-    myFile.print(":");
-    myFile.print(clock.minute, DEC);
-    myFile.print(":");
-    myFile.print(clock.second, DEC);
-    myFile.print("  ");
-    myFile.print(clock.month, DEC);
-    myFile.print("/");
-    myFile.print(clock.dayOfMonth, DEC);
-    myFile.print("/");
-    myFile.print(clock.year+2000, DEC);
-    myFile.print(" ");
-    myFile.print(clock.dayOfMonth);
-    myFile.print("*");
-    switch (clock.dayOfWeek)// Friendly printout the weekday
-    {
-        case MON:
-        myFile.print("MON");
-        break;
-        case TUE:
-        myFile.print("TUE");
-        break;
-        case WED:
-        myFile.print("WED");
-        break;
-        case THU:
-        myFile.print("THU");
-        break;
-        case FRI:
-        myFile.print("FRI");
-        break;
-        case SAT:
-        myFile.print("SAT");
-        break;
-        case SUN:
-        myFile.print("SUN");
-        break;
+    static unsigned long timepoint = millis();
+    if(millis()-timepoint>1000U){                  //time interval: 1s
+        timepoint = millis();
+        //temperature = readTemperature();         // read your temperature sensor to execute temperature compensation
+        voltage = analogRead(PH_PIN)/1024.0*5000;  // read the voltage
+        phValue = ph.readPH(voltage,temperature);  // convert voltage to pH with temperature compensation
+        Serial.print("temperature:");
+        Serial.print(temperature,1);
+        Serial.print("^C  pH:");
+        Serial.println(phValue,2);
     }
-    int analogValue = analogRead(A3);
-  // Rescale to potentiometer's voltage (from 0V to 3.3V):
-    float voltage = floatMap(analogValue, 0, 1024, 0, 5);
-    myFile.print("        Analog: ");
-    myFile.print(analogValue);
-    myFile.println("");
-    myFile.close();
-    Serial.println("done.");
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
-
-  // re-open the file for reading:
-  myFile = SD.open("test.txt");
-  if (myFile) {
-    Serial.println("test.txt:");
-    
-    
-
-    // read from the file until there's nothing else in it:
-    while (myFile.available()) {
-      Serial.write(myFile.read());
-    }
-    // close the file:
-    myFile.close();
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
+    ph.calibration(voltage,temperature);           // calibration process by Serail CMD
 }
 
+float readTemperature()
+{
+  //add your code here to get the temperature from your temperature sensor
+}
